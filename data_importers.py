@@ -5,7 +5,24 @@ import itertools
 import scipy.interpolate as interp
 import matplotlib.pyplot as plt
 import sys
+from pompy.models import PlumeStorer
+import dill as pickle
+import pompy.processors as processors
 
+class ImportedPlumes(object):
+    def __init__(self,pkl_file,array_z,array_dim_x,array_dim_y,puff_mol_amount):
+        with open(pkl_file,'r') as f:
+            self.plumeStorer = pickle.load(f)
+        self.array_gen = processors.ConcentrationValueCalculator(puff_mol_amount)
+
+    def puff_array_at_time(self,t):
+        ind = int(scipy.floor(t/self.plumeStorer.dt_store))
+        array_end = int(self.plumeStorer.puff_array_ends[ind])
+        return self.plumeStorer.big_puff_array[ind,0:array_end,:]
+
+    def value(self,t,xs,ys):
+        puff_array = self.puff_array_at_time(t)
+        self.array_gen.calc_conc_list(puff_array, xs, ys, z=0)
 
 class ImportedConc(object):
 #Note that each array here has been stored in the order that produces the right
