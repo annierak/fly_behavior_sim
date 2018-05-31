@@ -17,7 +17,7 @@ import odor_tracking_sim.utility as utility
 import odor_tracking_sim.simulation_running_tools as srt
 import data_importers
 
-file_name = 'dill_test'
+file_name = 'hdf5_plume_test'
 output_file = file_name+'.pkl'
 pkl_file = '/home/annie/work/programming/pompy_duplicate/test_saved_plumes.pkl'
 
@@ -35,6 +35,7 @@ traps = trap_models.TrapModel(trap_param)
 #Import wind and odor fields
 conc_file = '/home/annie/work/programming/pompy_duplicate/'+sys.argv[1]
 wind_file = '/home/annie/work/programming/pompy_duplicate/'+sys.argv[2]
+plume_file = '/home/annie/work/programming/pompy_duplicate/'+sys.argv[3]
 
 importedConc = data_importers.ImportedConc(conc_file)
 importedWind = data_importers.ImportedWind(wind_file)
@@ -44,8 +45,8 @@ array_dim_x = 1000
 array_dim_y = array_dim_x
 puff_mol_amount = 1.
 
-importedPlumes = data_importers.ImportedPlumes(
-    pkl_file,array_z,array_dim_x,array_dim_y,puff_mol_amount)
+importedPlumes = data_importers.ImportedPlumes(plume_file,
+    array_z,array_dim_x,array_dim_y,puff_mol_amount)
 
 
 dt = 0.25
@@ -53,7 +54,7 @@ frame_rate = 8
 times_real_time = 2 # seconds of simulation / sec in video
 capture_interval = int(scipy.ceil(times_real_time*(1./frame_rate)/dt))
 print(capture_interval)
-simulation_time = 5. #seconds
+simulation_time = 60. #seconds
 
 #Setup fly swarm
 release_time_constant=0.1
@@ -149,7 +150,7 @@ writer.setup(fig, file_name+'.mp4', 500)
 
 t = 0.0
 
-while t<=simulation_time:
+while t<simulation_time:
     for k in range(capture_interval):
         #update flies
         print('t: {0:1.2f}'.format(t))
