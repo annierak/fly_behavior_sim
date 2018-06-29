@@ -5,13 +5,15 @@ import itertools
 import scipy.interpolate as interp
 import matplotlib.pyplot as plt
 import sys
+import time
 from pompy.models import PlumeStorer,Rectangle
 import dill as pickle
 import pompy.processors as processors
 
 class ImportedPlumes(object):
 
-    def __init__(self,hdf5_file,array_z,array_dim_x,array_dim_y,puff_mol_amount):
+    def __init__(self,hdf5_file,array_z,array_dim_x,array_dim_y,puff_mol_amount,
+    release_delay):
         self.data = h5py.File(hdf5_file,'r')
         run_param = json.loads(self.data.attrs['jsonparam'])
         sim_region_tuple = run_param['simulation_region']
@@ -21,12 +23,20 @@ class ImportedPlumes(object):
         self.array_gen = processors.ConcentrationValueCalculator(puff_mol_amount)
         self.puff_array = self.data['puff_array']
         self.array_ends = self.data['array_end']
-
+        self.release_delay  = release_delay
     def puff_array_at_time(self,t):
-        ind = int(scipy.floor(t/self.dt_store))
-        array_end = self.array_ends[ind]
-        return self.puff_array[ind,0:array_end,:]
-
+        ind = int(scipy.floor((t+self.release_delay)/self.dt_store))
+        try:
+            array_end = self.array_ends[ind]
+        except(ValueError):
+            array_end = self.array_ends[ind-1]
+        if array_end>0:
+            try:
+                return self.puff_array[ind,0:array_end,:]
+            except(ValueError):
+                return self.puff_array[ind-1,0:array_end,:]
+        else:
+            return []
     def value(self,t,xs,ys):
         puff_array = self.puff_array_at_time(t)
         return self.array_gen.calc_conc_list(puff_array, xs, ys, z=0)
@@ -34,7 +44,7 @@ class ImportedPlumes(object):
 class ImportedConc(object):
 #Note that each array here has been stored in the order that produces the right
 #image (x goes top to bottom, y left to right)
-    def __init__(self,hdf5_file,cmap='Blues'):
+    def __init__(self,hdf5_file,release_delay,cmap='Blues',):
         self.data = h5py.File(hdf5_file,'r')
         run_param = json.loads(self.data.attrs['jsonparam'])
         self.simulation_region = run_param['simulation_region']
@@ -46,15 +56,20 @@ class ImportedConc(object):
         self.vmin,self.vmax = run_param['imshow_bounds']
         self.conc_array = self.data['conc_array']
         self.grid_size = scipy.shape(self.conc_array[0,:,:])
-
+        self.release_delay = release_delay
     def array_at_time(self,t):
-        ind = scipy.floor(t/self.dt_store)
-        return self.conc_array[ind,:,:]
+        ind = scipy.floor((t+self.release_delay)/self.dt_store)
+        try:
+            return self.conc_array[ind,:,:]
+        except(ValueError):
+            return self.conc_array[ind-1,:,:]
 
-    def plot(self,t):
+    def plot(self,t,vmin=None,vmax=None):
         array_at_time = self.array_at_time(t)
+        if vmin==None:
+            vmin, vmax = self.vmin,self.vmax
         image=plt.imshow(array_at_time, extent=self.simulation_region,
-        cmap=self.cmap,vmin=self.vmin,vmax=self.vmax)
+        cmap=self.cmap,vmin=vmin,vmax=vmax)
         return image
 
     def value(self,t,xs,ys):
@@ -83,7 +98,7 @@ class ImportedConc(object):
         return (self.vmin,self.vmax,self.cmap)
 
 class ImportedWind(object):
-    def __init__(self,hdf5_file):
+    def __init__(self,hdf5_file,release_delay):
         self.data = h5py.File(hdf5_file,'r')
         run_param = json.loads(self.data.attrs['jsonparam'])
         self.dt_store = run_param['dt_store']
@@ -92,10 +107,15 @@ class ImportedWind(object):
         self.y_points = scipy.array(run_param['y_points'])
         self.velocity_field = self.data['velocity_field']
         self.evolving = True
+        self.release_delay = release_delay
+
 
     def quiver_at_time(self,t):
-        ind = int(t/self.dt_store)
-        velocity_field = self.velocity_field[ind,:,:,:]
+        ind = scipy.floor((t+self.release_delay)/self.dt_store)
+        try:
+            velocity_field = self.velocity_field[ind,:,:,:]
+        except(ValueError):
+            velocity_field = self.velocity_field[ind-1,:,:,:]
         return scipy.array(velocity_field[:,:,0]),\
             scipy.array(velocity_field[:,:,1])
 
@@ -110,25 +130,18 @@ class ImportedWind(object):
         us,vs = self.quiver_at_time(t)
         interp_u = interp.RectBivariateSpline(self.x_points,self.y_points,us)
         interp_v = interp.RectBivariateSpline(self.x_points,self.y_points,vs)
-        # if interp_u(x,y)<0.001:
-        #     print('messed up u')
-        #     sys.exit()
-        # if interp_v(x,y)<0.001:
-        #     print('messed up v')
-        #     sys.exit()
         return scipy.array([float(interp_u(x, y)),
                                  float(interp_v(x, y))])
     def value(self,t,x,y):
     #performs velocity_at_pos on an array of x,y coordinates
         if type(x)==scipy.ndarray:
+            us,vs = self.quiver_at_time(t)
+            interp_u = interp.RectBivariateSpline(self.x_points,self.y_points,us)
+            interp_v = interp.RectBivariateSpline(self.x_points,self.y_points,vs)
             wind = scipy.array([
-                self.velocity_at_pos(t,x[i],y[i]) for i in range(len(x))
+                [float(interp_u(x[i], y[i])),\
+                float(interp_v(x[i], y[i]))] for i in range(len(x))
                 ])
-            # z_index = scipy.where((wind[:,0]==0. | wind[:,1]==0.))
-            # if scipy.size(z_index)>0:
-            #     print(x[z_index],y[z_index])
-            #     print('wind value problem')
-            #     sys.exit()
             return wind[:,0],wind[:,1]
         else:
             return self.velocity_at_pos(t,x,y)

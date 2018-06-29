@@ -17,9 +17,8 @@ import odor_tracking_sim.utility as utility
 import odor_tracking_sim.simulation_running_tools as srt
 import data_importers
 
-file_name = 'hdf5_plume_test'
+file_name = 'faster_dt_test'
 output_file = file_name+'.pkl'
-pkl_file = '/home/annie/work/programming/pompy_duplicate/test_saved_plumes.pkl'
 
 #traps
 trap_param = {
@@ -36,9 +35,10 @@ traps = trap_models.TrapModel(trap_param)
 conc_file = '/home/annie/work/programming/pompy_duplicate/'+sys.argv[1]
 wind_file = '/home/annie/work/programming/pompy_duplicate/'+sys.argv[2]
 plume_file = '/home/annie/work/programming/pompy_duplicate/'+sys.argv[3]
+release_delay = 10.
 
-importedConc = data_importers.ImportedConc(conc_file)
-importedWind = data_importers.ImportedWind(wind_file)
+importedConc = data_importers.ImportedConc(conc_file,release_delay)
+importedWind = data_importers.ImportedWind(wind_file,release_delay)
 
 array_z = 0.01
 array_dim_x = 1000
@@ -46,7 +46,7 @@ array_dim_y = array_dim_x
 puff_mol_amount = 1.
 
 importedPlumes = data_importers.ImportedPlumes(plume_file,
-    array_z,array_dim_x,array_dim_y,puff_mol_amount)
+    array_z,array_dim_x,array_dim_y,puff_mol_amount,release_delay)
 
 
 dt = 0.25
@@ -54,7 +54,7 @@ frame_rate = 8
 times_real_time = 2 # seconds of simulation / sec in video
 capture_interval = int(scipy.ceil(times_real_time*(1./frame_rate)/dt))
 print(capture_interval)
-simulation_time = 60. #seconds
+simulation_time = 95. #seconds
 
 #Setup fly swarm
 release_time_constant=0.1
@@ -72,12 +72,12 @@ swarm_param = {
         'flight_speed'        : scipy.full((swarm_size,), 0.5),
         'release_time'        : scipy.random.exponential(release_time_constant,(swarm_size,)),
         'release_time_constant': release_time_constant,
-        'release_delay'       : 0.,
+        'release_delay'       : release_delay,
         'cast_interval'       : [1, 3],
         'wind_slippage'       : wind_slippage,
         'odor_thresholds'     : {
             'lower': 0.0005,
-            'upper': 0.00001
+            'upper': 1    
             },
         'odor_probabilities'  : {
             'lower': 0.9,    # detection probability/sec of exposure
@@ -148,7 +148,7 @@ writer = FFMpegWriter(fps=frame_rate, metadata=metadata)
 writer.setup(fig, file_name+'.mp4', 500)
 
 
-t = 0.0
+t = 0.0 #- release_delay
 
 while t<simulation_time:
     for k in range(capture_interval):
