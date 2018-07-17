@@ -19,7 +19,7 @@ import odor_tracking_sim.utility as utility
 import odor_tracking_sim.simulation_running_tools as srt
 import data_importers
 
-file_name = '10_26_fly_sim_cast_timeout_300'
+file_name = '10_26_fly_sim_test29'
 output_file = file_name+'.pkl'
 
 dt = 0.25

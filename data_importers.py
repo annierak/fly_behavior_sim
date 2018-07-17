@@ -13,17 +13,23 @@ import pompy.processors as processors
 class ImportedPlumes(object):
 
     def __init__(self,hdf5_file,array_z,array_dim_x,array_dim_y,puff_mol_amount,
-    release_delay):
+    release_delay,box_approx=False,r_sq_max=20,epsilon=0.05,N=1e5):
         self.data = h5py.File(hdf5_file,'r')
         run_param = json.loads(self.data.attrs['jsonparam'])
         sim_region_tuple = run_param['simulation_region']
         self.sim_region = Rectangle(*sim_region_tuple)
         self.dt_store = run_param['dt_store']
         self.t_stop = run_param['simulation_time']
-        self.array_gen = processors.ConcentrationValueCalculator(puff_mol_amount)
+        if box_approx:
+            box_min,box_max = sim_region_tuple[1],sim_region_tuple[2]
+            self.array_gen = processors.ConcentrationValueFastCalculator(
+                box_min,box_max,r_sq_max,epsilon,puff_mol_amount,N)
+        else:
+            self.array_gen = processors.ConcentrationValueCalculator(puff_mol_amount)
         self.puff_array = self.data['puff_array']
         self.array_ends = self.data['array_end']
         self.release_delay  = release_delay
+        self.box_approx = box_approx
     def puff_array_at_time(self,t):
         ind = int(scipy.floor((t+self.release_delay)/self.dt_store))
         try:
@@ -38,7 +44,13 @@ class ImportedPlumes(object):
         else:
             return []
     def value(self,t,xs,ys):
+        #box approx True = use box method approximation to calc odor values
+        #else False = the original pompy direct computation
         puff_array = self.puff_array_at_time(t)
+        if self.box_approx:
+            print('doing approx version')
+        else:
+            print('doing exact version')
         return self.array_gen.calc_conc_list(puff_array, xs, ys, z=0)
 
 class ImportedConc(object):
