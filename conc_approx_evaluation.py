@@ -17,7 +17,7 @@ import odor_tracking_sim.simulation_running_tools as srt
 import data_importers
 
 dt = 1.
-simulation_time = 30*60. #seconds
+simulation_time = 5 #seconds
 release_delay = 20.*60
 
 #Import wind and odor fields
@@ -40,7 +40,8 @@ importedPlumesExact = data_importers.ImportedPlumes(plume_file,
     array_z,array_dim_x,array_dim_y,puff_mol_amount,release_delay)
 
 importedPlumesApprox = data_importers.ImportedPlumes(plume_file,
-    array_z,array_dim_x,array_dim_y,puff_mol_amount,release_delay,box_approx=True)
+    array_z,array_dim_x,array_dim_y,puff_mol_amount,release_delay,
+    box_approx=True,epsilon = 0.0001)
 
 
 target_size = 1000
@@ -55,14 +56,19 @@ while t<simulation_time:
     time.sleep(0.01)
     t+=dt
     x_position = np.random.uniform(xmin,xmax,target_size)
+    # x_position = np.random.uniform(999,1000,target_size)
     y_position = np.random.uniform(ymin,ymax,target_size)
+    # y_position = np.random.uniform(-1,0,target_size)
     odor_direct = importedPlumesExact.value(t,x_position,y_position)
     odor_approx = importedPlumesApprox.value(t,x_position,y_position)
     odor_comp_collector[:,counter*target_size:\
         counter*target_size+target_size] = odor_direct,odor_approx
     counter +=1
-    print(t,time.time()-t0)
+    # print(t,time.time()-t0)
 
 plt.figure(1)
 plt.scatter(odor_comp_collector[0,:],odor_comp_collector[1,:])
+plt.xlim([0,0.1])
+plt.ylim([0,0.1])
+plt.plot(np.linspace(0.0,.1,10),np.linspace(0.0,.1,10))
 plt.show()

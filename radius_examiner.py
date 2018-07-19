@@ -35,5 +35,5 @@ while t<t_stop:
     print(len(radii))
     biggest = max(radii)
     print(biggest)
-    time.sleep(0.01)
+    time.sleep(0.1)
     t+=dt
