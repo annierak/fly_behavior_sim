@@ -1,7 +1,7 @@
 import scipy
 import math
 import matplotlib.pyplot as plt
-import cPickle as pickle
+import pickle as pickle
 import sys
 import odor_tracking_sim.utility as utility
 import matplotlib.transforms
@@ -31,6 +31,9 @@ f = sys.argv[1]
 input_file = f+'.pkl'
 with open(input_file,'r') as f:
     # swarm = pickle.load(f)
+    # try:
+    (swarm,plume_file_id) = pickle.load(f)
+    # except TypeError:
     swarm = pickle.load(f)
 
 num_bins = 120

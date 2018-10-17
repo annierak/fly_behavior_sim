@@ -1,4 +1,4 @@
-#This runs a simulation and plots a comparison of the odor values computed using
+#This plots a comparison of the odor values computed using
 #the original pompy direct computation and the odor values computed using the
 #box method approximation.
 
@@ -17,7 +17,7 @@ import odor_tracking_sim.simulation_running_tools as srt
 import data_importers
 
 dt = 1.
-simulation_time = 5 #seconds
+simulation_time = 10 #seconds
 release_delay = 20.*60
 
 #Import wind and odor fields
@@ -48,9 +48,9 @@ target_size = 1000
 odor_comp_collector = np.zeros((2,int(target_size*simulation_time/dt)))
 counter = 0
 
-t = 0
+t = 30*60.
 
-while t<simulation_time:
+while t-30*60.<simulation_time:
     t0 = time.time()
     puff_array = importedPlumesExact.puff_array_at_time(t)
     time.sleep(0.01)

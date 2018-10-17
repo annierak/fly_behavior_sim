@@ -12,7 +12,8 @@ import odor_tracking_sim.swarm_models as swarm_models
 import odor_tracking_sim.simulation_running_tools as srt
 import data_importers
 
-plume_file = '/home/annie/work/programming/pompy_duplicate/puffObject6.5-22:6.hdf5'
+# plume_file = '/home/annie/work/programming/pompy_duplicate/puffObject6.5-22:6.hdf5'
+plume_file = '/home/annie/work/programming/pompy_duplicate/puffObject7.18-17:22.hdf5'
 
 array_z = 0.01
 array_dim_x = 1000
@@ -31,9 +32,9 @@ t_stop = 60*50.
 while t<t_stop:
     puff_array = importedPlumes.puff_array_at_time(t)
     radii = puff_array[:,3]
-    print(t/60.)
+    print(str(t/60.)+' min')
     print(len(radii))
     biggest = max(radii)
-    print(biggest)
+    # print(biggest)
     time.sleep(0.1)
     t+=dt
