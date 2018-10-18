@@ -20,6 +20,7 @@ class ImportedPlumes(object):
         self.sim_region = Rectangle(*sim_region_tuple)
         self.dt_store = run_param['dt_store']
         self.t_stop = run_param['simulation_time']
+        self.run_param = run_param
         if box_approx:
             box_min,box_max = sim_region_tuple[1],sim_region_tuple[2]
             self.array_gen = processors.ConcentrationValueFastCalculator(
@@ -113,6 +114,7 @@ class ImportedWind(object):
     def __init__(self,hdf5_file,release_delay):
         self.data = h5py.File(hdf5_file,'r')
         run_param = json.loads(self.data.attrs['jsonparam'])
+        self.run_param = run_param
         self.dt_store = run_param['dt_store']
         self.t_stop = run_param['simulation_time']
         self.x_points = scipy.array(run_param['x_points'])

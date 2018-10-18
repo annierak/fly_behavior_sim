@@ -55,6 +55,7 @@ plume_file = '/home/annie/work/programming/pompy_duplicate/'+sys.argv[3]
 
 importedConc = data_importers.ImportedConc(conc_file,release_delay)
 importedWind = data_importers.ImportedWind(wind_file,release_delay)
+wind_params = importedWind.run_param
 
 array_z = 0.01
 array_dim_x = 1000
@@ -63,41 +64,53 @@ puff_mol_amount = 1.
 
 importedPlumes = data_importers.ImportedPlumes(plume_file,
     array_z,array_dim_x,array_dim_y,puff_mol_amount,release_delay)
-
+plume_params = importedPlumes.run_param
 
 
 #Setup fly swarm
 wind_slippage = (0.,0.)
-swarm_size=100
+swarm_size=1000
+use_empirical_release_data = False
+
 
 #construct release distribution
-empirical_release_data_file = 'empirical_release_counts.pkl'
-with open(empirical_release_data_file,'r') as f:
-    release_data_counts = pickle.load(f)
+if use_empirical_release_data:
+    empirical_release_data_file = 'empirical_release_counts.pkl'
+    with open(empirical_release_data_file,'r') as f:
+        release_data_counts = pickle.load(f)
 
-#turn release counts into a list of times
-flattened_release_counts = scipy.sum(release_data_counts,0).astype(int)
-emp_dt = 1./25
-times = scipy.linspace(dt,len(flattened_release_counts)*emp_dt,
-    len(flattened_release_counts))
-total_count = int(sum(flattened_release_counts))
-release_times = scipy.zeros(total_count)
-counter = 0
-for release_time,count in list(zip(times,flattened_release_counts)):
-    if count>0:
-        release_times[counter:counter+count] = release_time
-        counter +=count
+    #turn release counts into a list of times
+    flattened_release_counts = scipy.sum(release_data_counts,0).astype(int)
+    emp_dt = 1./25
+    times = scipy.linspace(dt,len(flattened_release_counts)*emp_dt,
+        len(flattened_release_counts))
+    total_count = int(sum(flattened_release_counts))
+    release_times = scipy.zeros(total_count)
+    counter = 0
+    for release_time,count in list(zip(times,flattened_release_counts)):
+        if count>0:
+            release_times[counter:counter+count] = release_time
+            counter +=count
 
-release_times = utility.draw_from_inputted_distribution(
-    release_times,2,swarm_size)
+    release_times = utility.draw_from_inputted_distribution(
+        release_times,2,swarm_size)
 
 
-heading_data = {'angles':(scipy.pi/180)*scipy.array([0.,90.,180.,270.]),
-                'counts':scipy.array([[1724,514,1905,4666],[55,72,194,192]])
+    heading_data = {'angles':(scipy.pi/180)*scipy.array([0.,90.,180.,270.]),
+                    'counts':scipy.array([[1724,514,1905,4666],[55,72,194,192]])
                 }
+else:
+
+    beta = 10.
+    release_times = scipy.random.exponential(beta,(swarm_size,))
+    kappa = 2.
+
+    heading_data=None
+
 swarm_param = {
         'swarm_size'          : swarm_size,
         'heading_data'        : heading_data,
+        'initial_heading'     : scipy.random.vonmises(heading_mean,kappa,(swarm_size,)),
         'x_start_position'    : scipy.zeros(swarm_size),
         'y_start_position'    : scipy.zeros(swarm_size),
         'flight_speed'        : scipy.full((swarm_size,), 0.5),
@@ -114,6 +127,7 @@ swarm_param = {
         'dt_plot': capture_interval*dt,
         't_stop':simulation_time
         }
+
 swarm = swarm_models.BasicSwarmOfFlies(importedWind,traps,param=swarm_param,
     start_type='fh',track_plume_bouts=False,track_arena_exits=False)
 
@@ -180,10 +194,32 @@ title = plt.title('{0}/{1}:{2}'.format(total_cnt,swarm.size,trap_list))
 
 # frames = int(frame_rate*simulation_time/times_real_time)+1
 
+#Setup video
 FFMpegWriter = animate.writers['ffmpeg']
 metadata = {'title':file_name,}
 writer = FFMpegWriter(fps=frame_rate, metadata=metadata)
 writer.setup(fig, file_name+'.mp4', 500)
+
+# Setup density logger
+density_logger_bin_width = 30.
+density_logger_bin_edges = np.arange(importedPlumes.sim_region.xmin,
+    importedPlumes.sim_region.xmax+1,density_logger_bin_width)
+n = datetime.datetime.utcnow()
+logger_filename = 'fly_density_timecourse{0}.{1}-{2}:{3}'+file_name+'.hdf5'.format(
+    n.month,n.day,n.hour,n.minute)
+density_logger_param = {}
+# Density logger metadata requires:
+# (1) swarm params
+density_logger_param.update(swarm.param)
+# (2) Plume and wind params
+density_logger_param.update(importedWind.run_param)
+density_logger_param.update(importedPlumes.run_param)
+# (3) Data duration, timestep, and xy bin size
+density_logger_param.update({'sim_duration': simulation_time,
+    'sim_dt': dt , 'xy density bin width': density_logger_bin_width })
+
+timecourse_logger = h5_logger.H5Logger(logger_filename,param_attr=density_logger_param)
+
 
 
 t = 0.0 - release_delay
@@ -204,6 +240,16 @@ while t<simulation_time:
         timer.set_text(text)
         t+= dt
         time.sleep(0.001)
+
+        #Save density to logger
+
+        data = np.histogram2d(        # Compute location bin membership using 2d hist function
+            swarm.x_position,swarm.y_position,bins=
+            [density_logger_bin_edges,density_logger_bin_edges])
+        timecourse_logger.add(data)
+
+
+
     # Update live display
     '''plot the flies'''
     #plot the wind vector field
@@ -232,6 +278,8 @@ while t<simulation_time:
 
     writer.grab_frame()
     fig.canvas.flush_events()
+
+
 
 
 writer.finish()
