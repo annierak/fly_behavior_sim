@@ -19,7 +19,7 @@ import odor_tracking_sim.swarm_models as swarm_models
 import odor_tracking_sim.trap_models as trap_models
 import odor_tracking_sim.utility as utility
 import odor_tracking_sim.simulation_running_tools as srt
-import data_importers
+from pompy import data_importers
 
 descriptor = '_pure_advection'
 repeats = range(10)

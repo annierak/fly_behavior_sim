@@ -14,6 +14,8 @@ import plotting_utls as pltus
 empirical_color = 'green'
 sim_color = 'blue'
 
+show_empirical = False
+
 #empirical arrival times
 empirical_arrival_data_file = 'empirical_arrival_counts.pkl'
 with open(empirical_arrival_data_file,'r') as f:
@@ -63,15 +65,21 @@ trap_num_list = swarms[0].get_trap_nums()
 peak_counts = scipy.zeros(8)
 rasters = []
 
-fig = plt.figure(figsize=(11, 11))
+if show_empirical:
+    fig = plt.figure(figsize=(11, 11))
+else:
+    fig = plt.figure(figsize=(7, 11))
+
+fig.patch.set_facecolor('white')
 
 sim_reorder = scipy.array([3,2,1,8,7,6,5,4])
 
+labels = ['N','NE','E','SE','S','SW','W','NW']
 #Simulated histogram
 for i in range(8):
     row = sim_reorder[i]-1
     col = 0
-    ax = plt.subplot2grid((8,2),(row,col))
+    ax = plt.subplot2grid((8,1+int(show_empirical)),(row,col))
     t_sim = scipy.concatenate(tuple(swarm.get_time_trapped(i) for swarm in swarms))
     if len(t_sim)==0:
         ax.set_xticks([0,10,20,30,40,50])
@@ -86,53 +94,64 @@ for i in range(8):
         except(IndexError):
             peak_counts[i]=0
     ax.set_xlim([0,50])
-    if sim_reorder[i]-1==0:
+    if ((sim_reorder[i]-1==0) & show_empirical):
          ax.set_title('Simulated')
     ax.set_yticks([])
-    ax.text(-0.1,0.5,str(trap_total),transform=ax.transAxes,fontsize=20,horizontalalignment='center')
+    plt.tick_params(
+    axis='x',          # changes apply to the x-axis
+    which='both',      # both major and minor ticks are affected
+    bottom=True,      # ticks along the bottom edge are off
+    top=False,         # ticks along the top edge are off
+    labelbottom=True)
+    # ax.text(-0.1,0.5,str(trap_total),transform=ax.transAxes,fontsize=20,horizontalalignment='center')
+    ax.text(-0.1,0.5,str(labels[i]),transform=ax.transAxes,fontsize=20,
+        horizontalalignment='center',verticalalignment='center')
     if sim_reorder[i]-1==7:
-        ax.set_xlabel('Time (min)',x=0.5,horizontalalignment='center')
+        ax.set_xlabel('Time (min)',x=0.5,horizontalalignment='center',fontsize=20)
+        plt.tick_params(axis='both', which='major', labelsize=15)
     else:
         ax.set_xticklabels('')
 
 plt.text(0.5,0.95,sys.argv[1],fontsize=15,transform=plt.gcf().transFigure,horizontalalignment='center')
 
-labels = ['N','NE','E','SE','S','SW','W','NW']
 side_labels = scipy.array([85,22,18,2,15,377,317,188])
 
 #Observed histogram
-for i in range(len(total_counts)):
-    t_obs = emp_arrival_times[i,:]
-    t_obs = t_obs[~scipy.isnan(t_obs)]
-    t_obs = t_obs/60.
-    row = i#(2*i+1)%8
-    col = 1#((2*i+1)-(2*i+1)%8)/8
-    ax = plt.subplot2grid((8,2),(row,col))
-    ax.set_yticks([])
-    (n, bins, patches) = ax.hist(t_obs,num_bins,range=(0,max(t_obs)),
-    color=empirical_color)
-    if i==7:
-        ax.set_xlabel('Time (min)',x=0.5)
-    else:
-        # ax.set_xticks([])
-        ax.set_xticklabels('')
-    # ax.yaxis.labelpad = 30
-    # ax.set_yticks([ax.get_ylim()[1]])
-    ax.get_yaxis().set_tick_params(direction='out')
-    # ax.set_yticks([9])
-    # Create offset transform by 5 points in y direction
-    dx = 0/72.; dy = -5/72.
-    offset = matplotlib.transforms.ScaledTranslation(dx, dy, fig.dpi_scale_trans)
-    # apply offset transform to all x ticklabels.
-    for label in ax.yaxis.get_majorticklabels():
-        label.set_transform(label.get_transform() + offset)
-    ax.text(-0.1,0.5,str(labels[i]),transform=ax.transAxes,fontsize=20,horizontalalignment='center')
-    ax.text(1.1,0.5,str(side_labels[i]),transform=ax.transAxes,fontsize=20,horizontalalignment='center')
+if show_empirical:
+    for i in range(len(total_counts)):
+        t_obs = emp_arrival_times[i,:]
+        t_obs = t_obs[~scipy.isnan(t_obs)]
+        t_obs = t_obs/60.
+        row = i#(2*i+1)%8
+        col = 1#((2*i+1)-(2*i+1)%8)/8
+        ax = plt.subplot2grid((8,2),(row,col))
+        ax.set_yticks([])
+        (n, bins, patches) = ax.hist(t_obs,num_bins,range=(0,max(t_obs)),
+        color=empirical_color)
+        if i==7:
+            ax.set_xlabel('Time (min)',x=0.5)
+        else:
+            # ax.set_xticks([])
+            ax.set_xticklabels('')
+        # ax.yaxis.labelpad = 30
+        # ax.set_yticks([ax.get_ylim()[1]])
+        ax.get_yaxis().set_tick_params(direction='out')
+        # ax.set_yticks([9])
+        # Create offset transform by 5 points in y direction
+        dx = 0/72.; dy = -5/72.
+        offset = matplotlib.transforms.ScaledTranslation(dx, dy, fig.dpi_scale_trans)
+        # apply offset transform to all x ticklabels.
+        for label in ax.yaxis.get_majorticklabels():
+            label.set_transform(label.get_transform() + offset)
+        ax.text(1.1,0.5,str(side_labels[i]),transform=ax.transAxes,fontsize=20,
+            horizontalalignment='center',verticalalignment='center')
 
-    if i==0:
-         ax.set_title('Empirical')
+        if i==0:
+             ax.set_title('Empirical')
 
-fig2 = plt.figure(figsize=(10,6))
+fig2 = plt.figure(figsize=(10,10))
+fig2.patch.set_facecolor('white')
+
 
 #Trap loc simulated histogram
 trap_locs = (2*scipy.pi/swarm.num_traps)*scipy.array(swarm.list_all_traps())
@@ -153,30 +172,37 @@ for swarm in swarms:
 # plt.title('Empirical')
 # plt.show()
 
-# First, the way with two circle plots
 radius_scale = 0.3
-plot_size = 1.3
+plot_size = 1.5
 
-ax = plt.subplot(1,2,1,aspect=1)
+ax = plt.subplot(1,1+int(show_empirical),1,aspect=1)
 trap_locs_2d = [(scipy.cos(trap_loc),scipy.sin(trap_loc)) for trap_loc in trap_locs]
 patches = [plt.Circle(center, size) for center, size in zip(trap_locs_2d, radius_scale*sim_trap_counts/max(sim_trap_counts))]
 coll = matplotlib.collections.PatchCollection(patches, facecolors=sim_color,edgecolors=sim_color)
 ax.add_collection(coll)
 ax.set_ylim([-plot_size,plot_size]);ax.set_xlim([-plot_size,plot_size])
 pltus.strip_bare(ax)
-ax.text(0,1.15,'N',horizontalalignment='center',fontsize=10)
-plt.title('Simulated')
+ax.text(0,1.5,'N',horizontalalignment='center',verticalalignment='center',fontsize=25)
+ax.text(0,-1.5,'S',horizontalalignment='center',verticalalignment='center',fontsize=25)
+ax.text(1.5,0,'E',horizontalalignment='center',verticalalignment='center',fontsize=25)
+ax.text(-1.5,0,'W',horizontalalignment='center',verticalalignment='center',fontsize=25)
+# plt.title('Simulated')
+plt.axis('off')
+ax.text(0,1.7,'Trap Counts',horizontalalignment='center',verticalalignment='center',fontsize=35)
 
-ax = plt.subplot(1,2,2, aspect=1)
-patches = [plt.Circle(center, size) for center, size in zip(trap_locs_2d, radius_scale*side_labels[sim_reorder-1]/max(side_labels))]
-coll = matplotlib.collections.PatchCollection(patches, facecolors=empirical_color,edgecolors=empirical_color)
-ax.add_collection(coll)
-ax.set_ylim([-plot_size,plot_size]);ax.set_xlim([-plot_size,plot_size])
-pltus.strip_bare(ax)
-ax.text(0,1.15,'N',horizontalalignment='center',fontsize=10)
-plt.title('Empirical')
+if show_empirical:
+    ax = plt.subplot(1,2,2, aspect=1)
+    patches = [plt.Circle(center, size) for center, size in zip(trap_locs_2d, radius_scale*side_labels[sim_reorder-1]/max(side_labels))]
+    coll = matplotlib.collections.PatchCollection(patches, facecolors=empirical_color,edgecolors=empirical_color)
+    ax.add_collection(coll)
+    ax.set_ylim([-plot_size,plot_size]);ax.set_xlim([-plot_size,plot_size])
+    pltus.strip_bare(ax)
+    ax.text(0,1.15,'N',horizontalalignment='center',fontsize=10)
+    plt.title('Empirical')
+    plt.axis('off')
+    plt.text(0.5,0.9,sys.argv[1],fontsize=15,transform=plt.gcf().transFigure,horizontalalignment='center')
 
-plt.text(0.5,0.9,sys.argv[1],fontsize=15,transform=plt.gcf().transFigure,horizontalalignment='center')
+# plt.savefig('trap_test.png',format='png')
 
 
 plt.show()

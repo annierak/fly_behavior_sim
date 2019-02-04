@@ -17,9 +17,9 @@ import odor_tracking_sim.swarm_models as swarm_models
 import odor_tracking_sim.trap_models as trap_models
 import odor_tracking_sim.utility as utility
 import odor_tracking_sim.simulation_running_tools as srt
-import data_importers
+from pompy import data_importers
 
-file_name = 'perp_slip_demo_8_7'
+file_name = 'michael_video_nov_2018'
 output_file = file_name+'.pkl'
 
 dt = 0.25
@@ -28,7 +28,7 @@ times_real_time = 30 # seconds of simulation / sec in video
 capture_interval = int(scipy.ceil(times_real_time*(1./frame_rate)/dt))
 
 
-simulation_time = 50*60. #seconds
+simulation_time = 20*60. #seconds
 release_delay = 20.*60
 
 #traps
@@ -48,9 +48,13 @@ trap_param = {
 traps = trap_models.TrapModel(trap_param)
 
 #Import wind and odor fields
-conc_file = '/home/annie/work/programming/pompy_duplicate/'+sys.argv[1]
-wind_file = '/home/annie/work/programming/pompy_duplicate/'+sys.argv[2]
-plume_file = '/home/annie/work/programming/pompy_duplicate/'+sys.argv[3]
+# conc_file = '/home/annie/work/programming/pompy_duplicate/'+sys.argv[1]
+# wind_file = '/home/annie/work/programming/pompy_duplicate/'+sys.argv[2]
+# plume_file = '/home/annie/work/programming/pompy_duplicate/'+sys.argv[3]
+
+conc_file = '/home/annie/work/programming/special_data/'+sys.argv[1]
+wind_file = '/home/annie/work/programming/special_data/'+sys.argv[2]
+plume_file = '/home/annie/work/programming/special_data/'+sys.argv[3]
 
 importedConc = data_importers.ImportedConc(conc_file,release_delay)
 importedWind = data_importers.ImportedWind(wind_file,release_delay)
@@ -133,7 +137,7 @@ vmin,vmax,cmap = importedConc.get_image_params()
 im_extents = importedConc.simulation_region
 xmin,xmax,ymin,ymax = im_extents
 # Set up figure
-# plt.ion()
+plt.ion()
 fig = plt.figure(figsize=(8, 8))
 ax = fig.add_subplot(111)
 

@@ -64,6 +64,8 @@ try:
 except(IndexError):
     plotting=False
 
+plotting=True
+
 
 importedWind = data_importers.ImportedWind(wind_file,release_delay)
 wind_params = importedWind.run_param
@@ -148,7 +150,6 @@ swarm = swarm_models.BasicSwarmOfFlies(importedWind,traps,param=swarm_param,
 
 if plotting:
     # Set up figure
-    vmin,vmax,cmap = importedConc.get_image_params()
 
     im_extents = importedPlumes.sim_region
     xmin,ymin,xmax,ymax = im_extents.as_tuple()
@@ -157,7 +158,11 @@ if plotting:
     ax = fig.add_subplot(111)
 
     #Initial concentration plotting
-    image = importedConc.plot(0)
+    try:
+        vmin,vmax,cmap = importedConc.get_image_params()
+        image = importedConc.plot(0)
+    except(NameError):
+        pass
     buffr = -300
     ax.set_xlim((xmin-buffr,xmax+buffr))
     ax.set_ylim((ymin-buffr,ymax+buffr))
@@ -252,8 +257,8 @@ for key,value in density_logger_param.iteritems():
 timecourse_logger = h5_logger.H5Logger(logger_filename,param_attr=density_logger_param)
 #
 #
-# plt.figure(10)
-# imd = plt.imshow(np.random.randn(1000,1000))
+plt.figure(10)
+imd = plt.imshow(np.random.randn(1000,1000))
 
 
 
@@ -273,7 +278,7 @@ while t<simulation_time:
         grid_hist,_,_ = scipy.histogram2d(         # Compute location bin membership using 2d hist function
             swarm.x_position,swarm.y_position,bins=
             [density_logger_bin_edges,density_logger_bin_edges])
-        # imd.set_data(grid_hist)
+        imd.set_data(grid_hist)
         data = {'grid_hist': grid_hist}
         timecourse_logger.add(data)
 
@@ -300,8 +305,11 @@ while t<simulation_time:
         title.set_text('{0}/{1}:{2}'.format(total_cnt,swarm.size,trap_list))
 
         '''plot the odor concentration field'''
-        conc_array = importedConc.array_at_time(t)
-        image.set_data(scipy.log(conc_array))
+        try:
+            conc_array = importedConc.array_at_time(t)
+            image.set_data(scipy.log(conc_array))
+        except(NameError):
+            pass
 
         #Update time display
         release_delay = release_delay/60.
