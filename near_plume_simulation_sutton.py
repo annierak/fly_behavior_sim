@@ -30,7 +30,7 @@ release_delay=0.
 
 #traps
 trap_param = {
-        'source_locations' : [(7.5,35.),],
+        'source_locations' : [(7.5,25.),],
         'source_strengths' : [1.,],
         'epsilon'          : 0.01,
         'trap_radius'      : 0.5,
@@ -41,7 +41,8 @@ traps = trap_models.TrapModel(trap_param)
 
 source_pos = np.array([np.array(tup) for tup in trap_param['source_locations']])
 
-Q,C_y,n = (20.,0.4,1.)
+
+Q,C_y,n = (5.,0.4,0.8)
 wind_angle = -2*np.pi/3
 wind_mag = 1.
 
@@ -82,9 +83,9 @@ swarm_param = {
             },
         'odor_probabilities'  : {
             'lower': 0.9,    # detection probability/sec of exposure
-            'upper': 0.002,  # detection probability/sec of exposure
+            'upper': 0.8,  # detection probability/sec of exposure
             },
-        'schmitt_trigger':False,
+        'schmitt_trigger':True,
         'low_pass_filter_length':3, #seconds
         'dt_plot': capture_interval*dt,
         't_stop':simulation_time
@@ -132,14 +133,22 @@ Mode_FlyUpWind = 1
 Mode_CastForOdor = 2
 Mode_Trapped = 3
 
-color_dict = {Mode_StartMode : 'blue',
+edgecolor_dict = {Mode_StartMode : 'blue',
 Mode_FlyUpWind : 'red',
-Mode_CastForOdor : 'orange',
+Mode_CastForOdor : 'red',
+Mode_Trapped :   'black'}
+
+facecolor_dict = {Mode_StartMode : 'blue',
+Mode_FlyUpWind : 'red',
+Mode_CastForOdor : 'white',
 Mode_Trapped :   'black'}
 
 
-fly_colors = [color_dict[mode] for mode in swarm.mode]
-fly_dots = plt.scatter(swarm.x_position, swarm.y_position,color=fly_colors,alpha=0.5)
+fly_edgecolors = [edgecolor_dict[mode] for mode in swarm.mode]
+fly_facecolors =  [facecolor_dict[mode] for mode in swarm.mode]
+fly_dots = plt.scatter(swarm.x_position, swarm.y_position,
+    edgecolor=fly_edgecolors,facecolor = fly_facecolors,alpha=0.9)
+
 
 #Put the time in the corner
 (xmin,xmax) = ax.get_xlim();(ymin,ymax) = ax.get_ylim()
@@ -182,8 +191,11 @@ while t<simulation_time:
 
     fly_dots.set_offsets(scipy.c_[swarm.x_position,swarm.y_position])
 
-    fly_colors = [color_dict[mode] for mode in swarm.mode]
-    fly_dots.set_color(fly_colors)
+    fly_edgecolors = [edgecolor_dict[mode] for mode in swarm.mode]
+    fly_facecolors =  [facecolor_dict[mode] for mode in swarm.mode]
+
+    fly_dots.set_edgecolor(fly_edgecolors)
+    fly_dots.set_facecolor(fly_facecolors)
 
     trap_list = []
     for trap_num, trap_loc in enumerate(traps.param['source_locations']):
